@@ -1,3 +1,5 @@
+package models
+
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -5,7 +7,7 @@ import kotlinx.serialization.Serializable
 data class News(
     val id: Long,
     val title: String,
-    val place: String? = null,
+    val place: Place? = null,
     val description: String? = null,
     @SerialName("site_url") val siteUrl: String? = null,
     @SerialName("favorites_count") val favoritesCount: Int,

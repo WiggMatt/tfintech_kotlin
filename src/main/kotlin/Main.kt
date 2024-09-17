@@ -1,15 +1,20 @@
 import kotlinx.coroutines.runBlocking
 import java.time.LocalDate
+import org.slf4j.LoggerFactory
 
+private val logger = LoggerFactory.getLogger("Main")
 
 fun main() = runBlocking {
+    logger.info("Запуск приложения")
+
     val client = KtorClient()
+
+    println("\n-----------------100 СВЕЖИХ НОВОСТЕЙ-------------------\n")
 
     val news = client.getNews()
     news.forEach { println(it) }
 
     println("\n-----------------ТОП НОВОСТИ-------------------\n")
-
 
     // Примерные даты для поиска новостей
     val startDate = LocalDate.of(2024, 9, 16)
@@ -30,5 +35,7 @@ fun main() = runBlocking {
                     "Число комментариев: ${it.commentsCount}"
         )
     }
+
     saveNewsToCsv("filtered_news.csv", mostRatedNews)
+    logger.info("Новости сохранены в файл filtered_news.csv")
 }

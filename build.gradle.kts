@@ -17,6 +17,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("ch.qos.logback:logback-classic:1.5.6")
+    implementation("org.slf4j:slf4j-api:2.0.7")
 }
 
 tasks.test {

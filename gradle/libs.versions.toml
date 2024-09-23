@@ -6,6 +6,7 @@ logback = "1.5.6"
 slf4j = "2.0.7"
 kotlin = "2.0.0"
 serialization = "2.0.20"
+csv = "1.10.0"
 
 [libraries]
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
@@ -16,6 +17,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-html-jvm = { module = "org.jetbrains.kotlinx:kotlinx-html-jvm", version.ref = "kotlinx-html" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+apache-commons-csv = {module = "org.apache.commons:commons-csv", version.ref = "csv"}
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

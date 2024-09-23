@@ -19,6 +19,7 @@ dependencies {
     implementation(libs.kotlinx.html.jvm)
     implementation(libs.logback.classic)
     implementation(libs.slf4j.api)
+    implementation(libs.apache.commons.csv)
 }
 
 tasks.test {

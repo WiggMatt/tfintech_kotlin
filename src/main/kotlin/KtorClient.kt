@@ -25,31 +25,32 @@ class KtorClient {
     // Функция для получения новостей из API KudaGo
     suspend fun getNews(count: Int = 100, page: Int? = 1): List<News> {
         logger.debug("Запрос новостей: count=$count, page=$page")
-        return try {
-            val response: HttpResponse = client.get("https://kudago.com/public-api/v1.4/news/") {
-                parameter("fields", "id,title,place,description,publication_date,favorites_count,comments_count,site_url")
-                parameter("location", "kzn")
-                parameter("actual_only", true)
-                parameter("page", page)
-                parameter("page_size", count)
-                parameter("expand", "place")
-            }
 
-            val newsResponse: NewsResponse = response.body()
-            logger.debug("Получено ${newsResponse.results.size} новостей")
-            newsResponse.results
-        } catch (e: ClientRequestException) {
-            logger.error("Ошибка при запросе новостей: ${e.message}. Код состояния: ${e.response.status.value}", e)
-            emptyList()
-        } catch (e: ServerResponseException) {
-            logger.error("Ошибка сервера при запросе новостей: ${e.message}. Код состояния: ${e.response.status.value}", e)
-            emptyList()
-        } catch (e: Exception) {
-            logger.error("Неизвестная ошибка при запросе новостей: ${e.message}", e)
-            emptyList()
-        } finally {
-            client.close()
-            logger.info("HttpClient закрыт")
+        return client.use {
+            try {
+                val response: HttpResponse = it.get("https://kudago.com/public-api/v1.4/news/") {
+                    parameter("fields", "id,title,place,description,publication_date,favorites_count,comments_count,site_url")
+                    parameter("location", "kzn")
+                    parameter("actual_only", true)
+                    parameter("page", page)
+                    parameter("page_size", count)
+                    parameter("expand", "place")
+                }
+
+                val newsResponse: NewsResponse = response.body()
+                logger.debug("Получено ${newsResponse.results.size} новостей")
+                newsResponse.results
+
+            } catch (e: ClientRequestException) {
+                logger.error("Ошибка при запросе новостей: ${e.message}. Код состояния: ${e.response.status.value}", e)
+                throw e
+            } catch (e: ServerResponseException) {
+                logger.error("Ошибка сервера при запросе новостей: ${e.message}. Код состояния: ${e.response.status.value}", e)
+                throw e
+            } catch (e: Exception) {
+                logger.error("Неизвестная ошибка при запросе новостей: ${e.message}", e)
+                throw e
+            }
         }
     }
 }

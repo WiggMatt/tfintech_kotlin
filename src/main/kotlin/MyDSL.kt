@@ -1,110 +1,173 @@
-import kotlinx.html.*
-import kotlinx.html.stream.createHTML
-import models.News
-import org.slf4j.LoggerFactory
-import java.awt.Desktop
-import java.io.File
-import java.nio.charset.StandardCharsets
-import java.time.Instant
-import java.time.ZoneId
-
-// Настройка логгера
-private val logger = LoggerFactory.getLogger("NewsHtmlGenerator")
-
-// Функция для форматирования даты
-fun formatDate(epochSeconds: Long): String {
-    return Instant.ofEpochSecond(epochSeconds)
-        .atZone(ZoneId.systemDefault())
-        .toLocalDate()
-        .toString()
+// Интерфейс для всех билдоров HTML-элементов
+interface HtmlElementBuilder {
+    fun appendTo(builder: StringBuilder)
 }
 
-// Функция для генерации HTML
-fun generateNewsHtml(freshNews: List<News>, topRatedNews: List<News>): String {
-    logger.info("Генерация HTML для новостей.")
+// Абстрактный класс для билдоров с содержимым
+abstract class ContentBuilder : HtmlElementBuilder {
+    protected val content = StringBuilder()
 
-    return createHTML().html {
-        head {
-            title("Новости KudaGo")
+    protected fun addContent(tag: String, contentBuilder: ContentBuilder.() -> Unit) {
+        content.append("<$tag>")
+        this.contentBuilder()
+        content.append("</$tag>")
+    }
+
+    protected fun addText(text: String) {
+        content.append(text)
+    }
+
+    override fun appendTo(builder: StringBuilder) {
+        builder.append(content)
+    }
+}
+
+// Билдер HTML документа
+class HtmlBuilder : ContentBuilder() {
+    fun html(init: ContentBuilder.() -> Unit) {
+        addContent("html", init)
+    }
+
+    fun head(init: HeadBuilder.() -> Unit) {
+        addContent("head") {
+            HeadBuilder().apply(init).appendTo(content)
         }
-        body {
-            h1 { +"Новости KudaGo" }
+    }
 
-            h2 { +"Топ новости" }
-            table {
-                tr {
-                    th { +"Заголовок" }
-                    th { +"Дата публикации" }
-                    th { +"Рейтинг" }
-                }
-                topRatedNews.forEach { news ->
-                    tr {
-                        td { a(href = news.siteUrl) { +news.title } }
-                        td { +formatDate(news.publicationDate) }
-                        td { +"${news.rating}" }
-                    }
-                }
-            }
+    fun body(init: BodyBuilder.() -> Unit) {
+        addContent("body") {
+            BodyBuilder().apply(init).appendTo(content)
+        }
+    }
 
-            h2 { +"Свежие новости" }
-            div {
-                freshNews.forEach { news ->
-                    div("news-card") {
-                        h3 { a(href = news.siteUrl) { +news.title } }
-                        p { +"Дата публикации: ${formatDate(news.publicationDate)}" }
-                        news.place?.let { place ->
-                            div("place-info") {
-                                h4 { +"Место проведения" }
-                                p { +"Название: ${place.title}" }
-                                p { +"Локация: ${place.location}" }
-                                p { +"Адрес: ${place.address}" }
-                                p { +"Телефон: ${place.phone}" }
-                            }
-                        } ?: p { +"" }
-                        p {
-                            unsafe {
-                                +news.description!!
-                            }
-                        }
-                        p {
-                            +"Комментариев: ${news.commentsCount} | "
-                            +"В избранном: ${news.favoritesCount}"
-                        }
-                    }
-                    hr {}
-                }
-            }
+    fun toHtmlString(): String = content.toString()
+}
+
+// Билдер заголовка
+class HeadBuilder : ContentBuilder() {
+    fun title(text: String) {
+        addText("<title>$text</title>")
+    }
+}
+
+// Билдер тела документа
+class BodyBuilder : ContentBuilder() {
+    fun h1(init: TextBuilder.() -> Unit) {
+        addContent("h1") {
+            TextBuilder().apply(init).appendTo(content)
+        }
+    }
+
+    fun h2(init: TextBuilder.() -> Unit) {
+        addContent("h2") {
+            TextBuilder().apply(init).appendTo(content)
+        }
+    }
+
+    fun table(init: TableBuilder.() -> Unit) {
+        addContent("table") {
+            TableBuilder().apply(init).appendTo(content)
+        }
+    }
+
+    fun div(init: DivBuilder.() -> Unit) {
+        addContent("div") {
+            DivBuilder().apply(init).appendTo(content)
         }
     }
 }
 
-// Функция для сохранения HTML в файл
-fun saveHtmlToFile(htmlContent: String, filePath: String) {
-    logger.info("Сохранение HTML в файл: $filePath")
-    try {
-        File(filePath).writeText(htmlContent, StandardCharsets.UTF_8)
-        logger.info("HTML успешно сохранен в файл: $filePath")
-    } catch (e: Exception) {
-        logger.error("Ошибка при сохранении файла: ${e.message}", e)
+// Билдер текста
+class TextBuilder : ContentBuilder() {
+    fun plus(text: String) {
+        addText(text)
     }
 }
 
-// Функция для открытия HTML в браузере
-fun openHtmlInBrowser(filePath: String) {
-    val file = File(filePath)
-    if (file.exists()) {
-        logger.info("Открытие HTML файла в браузере: $filePath")
-        try {
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().browse(file.toURI())
-                logger.info("HTML файл открыт в браузере.")
-            } else {
-                logger.warn("Открытие браузера не поддерживается на этой системе.")
-            }
-        } catch (e: Exception) {
-            logger.error("Ошибка при открытии файла в браузере: ${e.message}", e)
+// Билдер таблицы
+class TableBuilder : ContentBuilder() {
+    fun tr(init: TrBuilder.() -> Unit) {
+        addContent("tr") {
+            TrBuilder().apply(init).appendTo(content)
         }
-    } else {
-        logger.warn("Файл не найден: $filePath")
+    }
+}
+
+// Билдер строки таблицы
+class TrBuilder : ContentBuilder() {
+    fun th(init: TextBuilder.() -> Unit) {
+        addContent("th") {
+            TextBuilder().apply(init).appendTo(content)
+        }
+    }
+
+    fun td(init: TdBuilder.() -> Unit) {
+        addContent("td") {
+            TdBuilder().apply(init).appendTo(content)
+        }
+    }
+}
+
+// Билдер ячейки таблицы
+class TdBuilder : ContentBuilder() {
+    fun plus(text: String) {
+        addText(text)
+    }
+
+    fun a(href: String, init: TextBuilder.() -> Unit) {
+        addContent("a href=\"$href\"") {
+            TextBuilder().apply(init).appendTo(content)
+        }
+    }
+}
+
+// Билдер блока div
+class DivBuilder : ContentBuilder() {
+    fun h3(init: TextBuilder.() -> Unit) {
+        addContent("h3") {
+            TextBuilder().apply(init).appendTo(content)
+        }
+    }
+
+    fun h4(init: TextBuilder.() -> Unit) {
+        addContent("h4") {
+            TextBuilder().apply(init).appendTo(content)
+        }
+    }
+
+    fun p(init: PBuilder.() -> Unit) {
+        addContent("p") {
+            PBuilder().apply(init).appendTo(content)
+        }
+    }
+
+    fun hr() {
+        addText("<hr>")
+    }
+
+    fun a(href: String, init: TextBuilder.() -> Unit) {
+        addContent("a href=\"$href\"") {
+            TextBuilder().apply(init).appendTo(content)
+        }
+    }
+}
+
+// Билдер абзаца
+class PBuilder : ContentBuilder() {
+    fun plus(text: String) {
+        addText(text)
+    }
+
+    fun unsafe(init: UnsafeBuilder.() -> Unit) {
+        addContent("p") {
+            UnsafeBuilder().apply(init).appendTo(content)
+        }
+    }
+}
+
+// Билдер небезопасного содержимого
+class UnsafeBuilder : ContentBuilder() {
+    fun plus(text: String) {
+        addText(text)
     }
 }

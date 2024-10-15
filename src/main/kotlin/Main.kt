@@ -1,16 +1,34 @@
-package ru.matthew
+import kotlinx.coroutines.runBlocking
+import java.time.LocalDate
+import org.slf4j.LoggerFactory
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-fun main() {
-    val name = "Kotlin"
-    //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-    // to see how IntelliJ IDEA suggests fixing it.
-    println("Hello, " + name + "!")
+private val logger = LoggerFactory.getLogger("Main")
 
-    for (i in 1..5) {
-        //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-        // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-        println("i = $i")
-    }
+fun main() = runBlocking {
+    logger.info("Запуск приложения")
+
+    val client = KtorClient()
+
+    val news = client.getNews()
+
+    val startDate = LocalDate.of(2024, 9, 16)
+    val endDate = LocalDate.of(2024, 9, 17)
+
+    // Фильтруем новости по указанному периоду
+    val filteredNews = getNewsWithinPeriod(client, startDate, endDate)
+
+    // Получаем топ-5 новостей с наивысшим рейтингом
+    val mostRatedNews = filteredNews.getMostRatedNews(count = 5)
+
+    saveNewsToCsv("filtered_news.csv", mostRatedNews)
+    logger.info("Новости сохранены в файл filtered_news.csv")
+
+    val htmlContent = generateNewsHtml(news, mostRatedNews)
+    logger.info("Сгенерирован HTML контент")
+
+    val filePath = "news.html"
+    saveHtmlToFile(htmlContent, filePath)
+    logger.info("Контент HTML сохранен в файл news.html")
+
+    openHtmlInBrowser(filePath)
 }

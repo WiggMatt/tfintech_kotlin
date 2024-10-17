@@ -1,3 +1,5 @@
+package controller
+
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
@@ -10,8 +12,8 @@ import models.News
 import models.NewsResponse
 import org.slf4j.LoggerFactory
 
-class KtorClient {
-    private val logger = LoggerFactory.getLogger(KtorClient::class.java)
+class NewsApiClient {
+    private val logger = LoggerFactory.getLogger(NewsApiClient::class.java)
 
     private val client: HttpClient
         get() = HttpClient {
@@ -22,7 +24,37 @@ class KtorClient {
             }
         }
 
-    // Функция для получения новостей из API KudaGo
+
+    // Функция для получения всех новостей
+    suspend fun getAllNews(count: Int = 100): List<News> {
+        logger.debug("Запуск получения всех новостей")
+        val allNews = mutableListOf<News>()
+        var page = 1
+        var continueLoading = true
+
+        while (continueLoading) {
+            logger.debug("Запрос страницы новостей: page=$page")
+            val newsPage = try {
+                getNews(page = page, count = count)
+            } catch (e: Exception) {
+                logger.error("Ошибка при запросе новостей на странице $page: ${e.message}")
+                emptyList()
+            }
+
+            if (newsPage.isEmpty()) {
+                logger.info("Завершение загрузки: пустая страница $page")
+                continueLoading = false
+            } else {
+                allNews.addAll(newsPage)
+                page++
+            }
+        }
+
+        logger.info("Всего получено ${allNews.size} новостей")
+        return allNews
+    }
+
+    // Оригинальная функция для запроса новостей с одной страницы
     suspend fun getNews(count: Int = 100, page: Int? = 1): List<News> {
         logger.debug("Запрос новостей: count=$count, page=$page")
 
@@ -38,7 +70,7 @@ class KtorClient {
                 }
 
                 val newsResponse: NewsResponse = response.body()
-                logger.debug("Получено ${newsResponse.results.size} новостей")
+                logger.debug("Получено ${newsResponse.results.size} новостей на странице $page")
                 newsResponse.results
 
             } catch (e: ClientRequestException) {

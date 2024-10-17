@@ -1,3 +1,5 @@
+package ui
+
 // Интерфейс для всех билдоров HTML-элементов
 interface HtmlElementBuilder {
     fun appendTo(builder: StringBuilder)

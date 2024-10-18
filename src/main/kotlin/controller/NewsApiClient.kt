@@ -6,9 +6,9 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.serialization.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
-import models.News
 import models.NewsResponse
 import org.slf4j.LoggerFactory
 
@@ -24,38 +24,8 @@ class NewsApiClient {
             }
         }
 
-
-    // Функция для получения всех новостей
-    suspend fun getAllNews(count: Int = 100): List<News> {
-        logger.debug("Запуск получения всех новостей")
-        val allNews = mutableListOf<News>()
-        var page = 1
-        var continueLoading = true
-
-        while (continueLoading) {
-            logger.debug("Запрос страницы новостей: page=$page")
-            val newsPage = try {
-                getNews(page = page, count = count)
-            } catch (e: Exception) {
-                logger.error("Ошибка при запросе новостей на странице $page: ${e.message}")
-                emptyList()
-            }
-
-            if (newsPage.isEmpty()) {
-                logger.info("Завершение загрузки: пустая страница $page")
-                continueLoading = false
-            } else {
-                allNews.addAll(newsPage)
-                page++
-            }
-        }
-
-        logger.info("Всего получено ${allNews.size} новостей")
-        return allNews
-    }
-
     // Оригинальная функция для запроса новостей с одной страницы
-    suspend fun getNews(count: Int = 100, page: Int? = 1): List<News> {
+    suspend fun getNews(count: Int = 100, page: Int? = 1): NewsResponse {
         logger.debug("Запрос новостей: count=$count, page=$page")
 
         return client.use {
@@ -69,9 +39,9 @@ class NewsApiClient {
                     parameter("expand", "place")
                 }
 
-                val newsResponse: NewsResponse = response.body()
-                logger.debug("Получено ${newsResponse.results.size} новостей на странице $page")
-                newsResponse.results
+                response.body<NewsResponse>().also {
+                    logger.debug("Получено ${it.results.size} новостей на странице $page")
+                }
 
             } catch (e: ClientRequestException) {
                 logger.error("Ошибка при запросе новостей: ${e.message}. Код состояния: ${e.response.status.value}", e)
@@ -79,7 +49,10 @@ class NewsApiClient {
             } catch (e: ServerResponseException) {
                 logger.error("Ошибка сервера при запросе новостей: ${e.message}. Код состояния: ${e.response.status.value}", e)
                 throw e
-            } catch (e: Exception) {
+            } catch (e: JsonConvertException){
+                logger.error("Ошибка при парсинге ответа: ${e.message}", e)
+                throw e
+            }catch (e: Exception) {
                 logger.error("Неизвестная ошибка при запросе новостей: ${e.message}", e)
                 throw e
             }

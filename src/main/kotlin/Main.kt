@@ -13,7 +13,7 @@ fun main() = runBlocking {
     val apiClient = NewsApiClient()
 
     // 2. Инициализация сервисов
-    val newsService = NewsService(apiClient)
+    val newsService = NewsService()
     val htmlGenerator = NewsHtmlGenerator()
     val csvWriter = NewsCsvWriter()
 
@@ -22,7 +22,7 @@ fun main() = runBlocking {
     val endDate = LocalDate.of(2024, 10, 17)
 
     // 4. Получение всех новостей за указанный период
-    val newsList = newsService.getNewsWithinPeriod(apiClient, startDate, endDate)
+    val newsList = newsService.getNewsWithinPeriod(apiClient, 1, startDate, endDate)
 
 
     // 5. Отбор топ новостей по рейтингу (например, топ 5)

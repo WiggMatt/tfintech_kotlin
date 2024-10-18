@@ -5,23 +5,17 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.ZoneId
 
-class NewsService(private val client: NewsApiClient) {
+class NewsService {
     private val logger = LoggerFactory.getLogger(NewsService::class.java)
 
     // Функция получения списка новостей по указанному периоду
-    suspend fun getNewsWithinPeriod(client: NewsApiClient, startDate: LocalDate, endDate: LocalDate): List<News> {
+    suspend fun getNewsWithinPeriod(client: NewsApiClient, page: Int, startDate: LocalDate, endDate: LocalDate): List<News> {
         logger.info("Получение новостей по периоду: startDate=$startDate, endDate=$endDate")
         val allNews = mutableListOf<News>()
-        var page = 1
         var continueLoading = true
 
         while (continueLoading) {
-            val newsPage = try {
-                loadNewsPage(client, page = page)
-            } catch (e: Exception) {
-                logger.error("Ошибка при загрузке страницы новостей: page=$page, ${e.message}", e)
-                emptyList()
-            }
+            val newsPage = loadNewsPage(client, page = page)
 
             if (newsPage.isEmpty()) {
                 logger.warn("Нет новостей на странице $page")
@@ -34,8 +28,6 @@ class NewsService(private val client: NewsApiClient) {
             if (isLastPageBeforeStartDate(newsPage, startDate)) {
                 continueLoading = false
                 logger.info("Завершение загрузки: последняя страница перед начальной датой")
-            } else {
-                page++
             }
         }
 
@@ -45,18 +37,18 @@ class NewsService(private val client: NewsApiClient) {
 
 
     // Функция для загрузки новой страницы
-    suspend fun loadNewsPage(client: NewsApiClient, page: Int): List<News> {
+    private suspend fun loadNewsPage(client: NewsApiClient, page: Int): List<News> {
         logger.trace("Запрос страницы новостей: page=$page")
         return try {
-            client.getNews(page = page)
+            client.getNews(page = page).results
         } catch (e: Exception) {
             logger.error("Ошибка при загрузке страницы новостей: page=$page, ${e.message}", e)
-            emptyList()
+            throw e
         }
     }
 
     // Функция для фильтрации новостей по дате
-    fun filterNewsByDate(news: List<News>, startDate: LocalDate, endDate: LocalDate): List<News> {
+    private fun filterNewsByDate(news: List<News>, startDate: LocalDate, endDate: LocalDate): List<News> {
         logger.debug("Фильтрация новостей по дате: startDate={}, endDate={}", startDate, endDate)
         return news.filter { newsItem ->
             try {
@@ -72,7 +64,7 @@ class NewsService(private val client: NewsApiClient) {
     }
 
     // Функция для проверки выхода за пределы периода поиска
-    fun isLastPageBeforeStartDate(newsPage: List<News>, startDate: LocalDate): Boolean {
+    private fun isLastPageBeforeStartDate(newsPage: List<News>, startDate: LocalDate): Boolean {
         logger.debug("Проверка последней страницы перед начальной датой: startDate={}", startDate)
         return try {
             val lastDate = newsPage.lastOrNull()?.let {

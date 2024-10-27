@@ -1,17 +1,19 @@
+package controller
+
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.serialization.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
-import models.News
 import models.NewsResponse
 import org.slf4j.LoggerFactory
 
-class KtorClient {
-    private val logger = LoggerFactory.getLogger(KtorClient::class.java)
+class NewsApiClient {
+    private val logger = LoggerFactory.getLogger(NewsApiClient::class.java)
 
     private val client: HttpClient
         get() = HttpClient {
@@ -22,8 +24,8 @@ class KtorClient {
             }
         }
 
-    // Функция для получения новостей из API KudaGo
-    suspend fun getNews(count: Int = 100, page: Int? = 1): List<News> {
+    // Оригинальная функция для запроса новостей с одной страницы
+    suspend fun getNews(count: Int = 100, page: Int? = 1): NewsResponse {
         logger.debug("Запрос новостей: count=$count, page=$page")
 
         return client.use {
@@ -37,9 +39,9 @@ class KtorClient {
                     parameter("expand", "place")
                 }
 
-                val newsResponse: NewsResponse = response.body()
-                logger.debug("Получено ${newsResponse.results.size} новостей")
-                newsResponse.results
+                response.body<NewsResponse>().also {
+                    logger.debug("Получено ${it.results.size} новостей на странице $page")
+                }
 
             } catch (e: ClientRequestException) {
                 logger.error("Ошибка при запросе новостей: ${e.message}. Код состояния: ${e.response.status.value}", e)
@@ -47,7 +49,10 @@ class KtorClient {
             } catch (e: ServerResponseException) {
                 logger.error("Ошибка сервера при запросе новостей: ${e.message}. Код состояния: ${e.response.status.value}", e)
                 throw e
-            } catch (e: Exception) {
+            } catch (e: JsonConvertException){
+                logger.error("Ошибка при парсинге ответа: ${e.message}", e)
+                throw e
+            }catch (e: Exception) {
                 logger.error("Неизвестная ошибка при запросе новостей: ${e.message}", e)
                 throw e
             }
